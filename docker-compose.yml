@@ -1,0 +1,57 @@
+version: "3"
+
+networks:
+  web-network:
+
+services:
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - ./dbdata:/var/lib/mysql
+      - ./dbbackup:/var/lib/mysql-db-backup
+    environment:
+      - "MYSQL_DATABASE=internBE"
+      - "MYSQL_USER=intern"
+      - "MYSQL_PASSWORD=intern123"
+      - "MYSQL_ROOT_PASSWORD=intern123"
+    ports:
+      - "43306:3306"
+    networks:
+      - web-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    environment:
+      - "MYSQL_USER=intern"
+      - "MYSQL_PASSWORD=intern123"
+      - "MYSQL_ROOT_PASSWORD=intern123"
+    links:
+      - mysql:db
+    ports:
+      - "48081:80"
+    networks:
+      - web-network
+
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - "48080:80"
+    volumes:
+      - ./app:/var/www
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - web-network
+    depends_on:
+      - "mysql"
+
+  php-fpm:
+    build:
+      context: ./php-fpm
+    volumes:
+      - ./app:/var/www
+    working_dir: /var/www
+    networks:
+      - web-network
+    depends_on:
+      - "mysql"
